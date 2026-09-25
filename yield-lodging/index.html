@@ -91,6 +91,8 @@ input[type=range]{width:100%;accent-color:var(--ink);margin:0}
 .story button:hover{background:color-mix(in srgb,var(--tip-ink) 12%,transparent)}
 .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
 .toggle input{width:16px;height:16px;accent-color:var(--ink);margin:0}
+.toggles{display:flex;flex-direction:column;gap:6px}
+.recording .story button{display:none}
 .moments{display:flex;flex-direction:column;gap:10px}
 .moments h2{font-family:"Roboto Condensed","Arial Narrow",Arial,sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:0;color:var(--ink-2)}
 .moments ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 16px}
@@ -163,7 +165,10 @@ th{position:sticky;top:0;background:var(--bg);color:var(--ink)}
   <div class="controls">
     <button id="play" type="button" aria-label="Play animation"><span id="playIcon">▶</span><span id="playTxt">Play</span></button>
     <button id="restart" type="button">↺ Restart</button>
-    <label class="toggle" for="storyOn"><input type="checkbox" id="storyOn" checked> Story mode</label>
+    <div class="toggles">
+      <label class="toggle" for="storyOn"><input type="checkbox" id="storyOn" checked> Story mode</label>
+      <label class="toggle" for="recOn"><input type="checkbox" id="recOn"> Recording mode</label>
+    </div>
     <div class="field speed">
       <label for="speed">Speed <output id="speedOut" for="speed">12 months/sec</output></label>
       <input id="speed" type="range" min="0" max="7" step="1" value="4">
@@ -179,7 +184,7 @@ th{position:sticky;top:0;background:var(--bg);color:var(--ink)}
     <ol id="momentList"></ol>
   </section>
 
-  <p class="foot">Source: Federal Reserve Bank of St. Louis (FRED), series IRLTLT01USM156N (OECD 10-year government bond yield, monthly average) and TLLODGCONS (U.S. Census Bureau total construction spending on lodging, seasonally adjusted annual rate) from January 2002. Lodging before 2002 is the Census Bureau's discontinued "Hotels, motels" series (private construction, old classification, seasonally adjusted annual rate), spliced without adjustment; in 2002, when both were published, the new series ran about 5% above the old one. The two lines use different scales, so the point where they cross has no meaning. Space bar plays and pauses. Story mode pauses at each key moment; select a moment below to jump to it. Hover the chart while paused to read any month. Moments describe what moved with rates and lending at the time, not rates alone.</p>
+  <p class="foot">Source: Federal Reserve Bank of St. Louis (FRED), series IRLTLT01USM156N (OECD 10-year government bond yield, monthly average) and TLLODGCONS (U.S. Census Bureau total construction spending on lodging, seasonally adjusted annual rate) from January 2002. Lodging before 2002 is the Census Bureau's discontinued "Hotels, motels" series (private construction, old classification, seasonally adjusted annual rate), spliced without adjustment; in 2002, when both were published, the new series ran about 5% above the old one. The two lines use different scales, so the point where they cross has no meaning. Space bar plays and pauses. Story mode pauses at each key moment; select a moment below to jump to it. Recording mode hides the buttons on the story cards for screen recordings. Hover the chart while paused to read any month. Moments describe what moved with rates and lending at the time, not rates alone.</p>
 
   <details>
     <summary>Data table (679 months)</summary>
@@ -451,6 +456,10 @@ function hideCard(){
 }
 $("storyNext").onclick = () => { if(story.holdUntil){ story.holdUntil = 0; hideCard(); kick(); } else hideCard(); draw(); };
 $("storyOn").onchange = e => { storyOn = e.target.checked; if(!storyOn) hideCard(); kick(); draw(); };
+// recording mode: cards show no buttons, so a screen recording plays through untouched (also on with #record in the link)
+const setRec = on => { document.body.classList.toggle("recording", on); $("recOn").checked = on; };
+$("recOn").onchange = e => setRec(e.target.checked);
+setRec(location.hash === "#record");
 
 // one render loop: advances the playhead while playing, and keeps easing the axes
 // until they settle; it goes idle when nothing is moving
