@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Animated chart of the 10-year Treasury yield and U.S. lodging construction spending, 1970–2026, by Libardo Lambrano.">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>10-Year Yield vs. Lodging Construction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@500;700&family=Roboto:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#f5f4f1; --ink:#141414; --ink-2:#55534d; --ink-3:#86837b;
+  --grid:#e1ded6; --axis:#3a3935; --zero:#9a978e;
+  --s1:#2a78d6; --s2:#eb6834;
+  --ctl:#ebe9e3; --ctl-hover:#e1ded6; --focus:#2a78d6;
+  --tip-bg:#141414; --tip-ink:#f5f4f1;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#161615; --ink:#f2f1ec; --ink-2:#c3c2b7; --ink-3:#8f8d84;
+    --grid:#2c2b28; --axis:#b9b7ae; --zero:#6d6b64;
+    --s1:#3987e5; --s2:#d95926;
+    --ctl:#242321; --ctl-hover:#2e2d2a; --focus:#3987e5;
+    --tip-bg:#f2f1ec; --tip-ink:#161615;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#161615; --ink:#f2f1ec; --ink-2:#c3c2b7; --ink-3:#8f8d84;
+  --grid:#2c2b28; --axis:#b9b7ae; --zero:#6d6b64;
+  --s1:#3987e5; --s2:#d95926;
+  --ctl:#242321; --ctl-hover:#2e2d2a; --focus:#3987e5;
+  --tip-bg:#f2f1ec; --tip-ink:#161615;
+}
+body{background:var(--bg);color:var(--ink);font-family:Roboto,"Helvetica Neue",Arial,sans-serif;}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:24px;padding-block:28px 40px;display:flex;flex-direction:column;gap:18px}
+h1{font-family:"Roboto Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.01em;font-size:clamp(22px,3.4vw,34px);line-height:1.05;margin:0;text-wrap:balance}
+.sub{margin:6px 0 0;color:var(--ink-2);font-size:15px;line-height:1.45;max-width:70ch}
+.readout{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 40px;border-top:2px solid var(--ink);padding-top:14px}
+.date{font-family:"Roboto Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;font-size:clamp(34px,5vw,52px);line-height:.9;font-variant-numeric:tabular-nums;min-width:5.2ch}
+.stat{display:flex;flex-direction:column;gap:4px}
+.stat .lab{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+.sw{width:18px;height:3px;border-radius:2px;display:inline-block}
+.stat .val{font-family:"Roboto Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.stat .val small{font-size:14px;font-weight:500;color:var(--ink-2);margin-left:3px}
+.chart{position:relative;width:100%;height:clamp(300px,52vw,500px)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.tip{position:absolute;pointer-events:none;background:var(--tip-bg);color:var(--tip-ink);font-size:12px;line-height:1.5;padding:8px 10px;border-radius:6px;white-space:nowrap;font-variant-numeric:tabular-nums;transform:translate(-50%,calc(-100% - 12px))}
+.tip b{font-weight:700;display:block;margin-bottom:2px}
+.tip i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.controls{display:grid;grid-template-columns:auto auto auto minmax(160px,1fr) minmax(200px,2fr);align-items:center;gap:12px 20px;background:var(--ctl);border-radius:10px;padding:12px 16px}
+button{font:500 14px Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--grid);border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:38px}
+button:hover{background:var(--ctl-hover)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+#play{background:var(--ink);color:var(--bg);border-color:var(--ink);min-width:112px;justify-content:center}
+#play:hover{opacity:.88}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+.field label output{text-transform:none;letter-spacing:0;color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--ink);margin:0}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.presets button{min-height:28px;padding:3px 9px;font-size:12px}
+.presets button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.foot{color:var(--ink-3);font-size:12px;line-height:1.5}
+/* signature bar: travels with every screenshot and recording of the chart */
+.sig{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 24px;border-top:1px solid var(--ink);padding-top:12px;margin-top:-6px}
+.sig .who{display:flex;align-items:center;gap:12px;min-width:0}
+.sig .mark{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:6px;background:var(--ink);color:var(--bg);font-family:"Roboto Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;font-size:17px;letter-spacing:.02em}
+.sig .name{font-family:"Roboto Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;font-size:17px;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
+.sig .role{font-size:13px;color:var(--ink-2);line-height:1.35}
+.sig .src{font-size:12px;color:var(--ink-3);text-align:right}
+@media (max-width:560px){.sig .src{text-align:left}}
+.story .cta{margin-top:10px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--tip-ink) 25%,transparent);font-size:12.5px;font-weight:500;opacity:.9}
+/* story mode */
+.story{position:absolute;top:34px;left:64px;width:min(340px,calc(100% - 32px));background:var(--tip-bg);color:var(--tip-ink);border-radius:8px;padding:14px 16px 12px;box-shadow:0 6px 24px rgba(0,0,0,.18);transition:opacity .35s ease, transform .35s ease;z-index:2}
+.story.right{left:auto;right:84px}
+.story.off{opacity:0;transform:translateY(6px);pointer-events:none}
+.story .eyebrow{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+.story .num{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--tip-ink);color:var(--tip-bg);font-size:11px;font-weight:700;letter-spacing:0}
+.story h3{font-family:"Roboto Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;font-size:20px;line-height:1.15;margin:6px 0 6px;text-wrap:balance}
+.story p{margin:0;font-size:13.5px;line-height:1.45;opacity:.92}
+.story .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+.story .bar{flex:1;height:2px;background:color-mix(in srgb,var(--tip-ink) 25%,transparent);border-radius:2px;overflow:hidden}
+.story .bar i{display:block;height:100%;width:0;background:var(--tip-ink)}
+.story button{min-height:28px;padding:3px 10px;font-size:12px;background:transparent;color:var(--tip-ink);border-color:color-mix(in srgb,var(--tip-ink) 40%,transparent)}
+.story button:hover{background:color-mix(in srgb,var(--tip-ink) 12%,transparent)}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.toggle input{width:16px;height:16px;accent-color:var(--ink);margin:0}
+.moments{display:flex;flex-direction:column;gap:10px}
+.moments h2{font-family:"Roboto Condensed","Arial Narrow",Arial,sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:0;color:var(--ink-2)}
+.moments ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 16px}
+.moments li button{width:100%;display:grid;grid-template-columns:22px 1fr;align-items:start;gap:10px;text-align:left;padding:8px 10px;min-height:0;background:transparent;border:1px solid transparent;border-radius:8px}
+.moments li button:hover{background:var(--ctl)}
+.moments li button[aria-current="true"]{border-color:var(--grid);background:var(--ctl)}
+.moments .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:11px;font-weight:700;margin-top:1px}
+.moments .t{display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.35;color:var(--ink)}
+.moments .t small{color:var(--ink-3);font-size:12px}
+@media (prefers-reduced-motion: reduce){.story{transition:none}}
+details{font-size:13px;color:var(--ink-2)}
+summary{cursor:pointer;font-weight:500}
+.tbl{max-height:320px;overflow:auto;margin-top:8px;border-top:1px solid var(--grid)}
+table{border-collapse:collapse;width:100%;max-width:520px;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:4px 10px;border-bottom:1px solid var(--grid)}
+th:first-child,td:first-child{text-align:left}
+th{position:sticky;top:0;background:var(--bg);color:var(--ink)}
+@media (max-width:760px){
+  .wrap{padding-inline:16px}
+  .controls{grid-template-columns:auto auto 1fr}
+  .controls .speed,.controls .time{grid-column:1/-1}
+  .story,.story.right{left:8px;right:8px;width:auto;top:26px}
+  .story h3{font-size:17px}
+  .story p{font-size:12.5px}
+  .stat .val{font-size:22px}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Treasury yields and lodging construction.</h1>
+    <p class="sub">10-year U.S. government bond yield (monthly, left axis) against U.S. construction spending on lodging (billions of dollars, seasonally adjusted annual rate, right axis), January 1970 to July 2026.</p>
+  </header>
+
+  <div class="readout" aria-live="off">
+    <div class="date" id="date">Q3 2026</div>
+    <div class="stat">
+      <span class="lab"><span class="sw" style="background:var(--s1)"></span>10-yr Treasury yield</span>
+      <span class="val" id="v1">4.60<small>%</small></span>
+    </div>
+    <div class="stat">
+      <span class="lab"><span class="sw" style="background:var(--s2)"></span>Lodging construction spending</span>
+      <span class="val" id="v2">$24.7<small>B</small></span>
+    </div>
+  </div>
+
+  <div class="chart" id="chartBox">
+    <canvas id="c" role="img" aria-label="Animated line chart: 10-year Treasury yield and lodging construction spending, 1970 to 2026, on separate left and right axes."></canvas>
+    <div class="tip" id="tip" hidden></div>
+    <div class="story off" id="story" role="status" aria-live="polite">
+      <div class="eyebrow"><span class="num" id="storyNum">1</span><span id="storyWhen">1979–81</span></div>
+      <h3 id="storyTitle"></h3>
+      <p id="storyBody"></p>
+      <div class="cta" id="storyCta" hidden>Follow Libardo Lambrano for more data stories on the hotel industry.</div>
+      <div class="row"><div class="bar"><i id="storyBar"></i></div><button type="button" id="storyNext">Continue ▸</button></div>
+    </div>
+  </div>
+
+  <div class="sig" aria-label="Credits">
+    <div class="who">
+      <div class="mark" aria-hidden="true">LL</div>
+      <div>
+        <div class="name">Libardo Lambrano</div>
+        <div class="role">Travel &amp; hotel data visualization · 15 years in hospitality planning &amp; performance analytics</div>
+      </div>
+    </div>
+    <div class="src">Data: FRED · U.S. Census Bureau</div>
+  </div>
+
+  <div class="controls">
+    <button id="play" type="button" aria-label="Play animation"><span id="playIcon">▶</span><span id="playTxt">Play</span></button>
+    <button id="restart" type="button">↺ Restart</button>
+    <label class="toggle" for="storyOn"><input type="checkbox" id="storyOn" checked> Story mode</label>
+    <div class="field speed">
+      <label for="speed">Speed <output id="speedOut" for="speed">12 months/sec</output></label>
+      <input id="speed" type="range" min="0" max="7" step="1" value="4">
+    </div>
+    <div class="field time">
+      <label for="scrub">Timeline <output id="scrubOut" for="scrub">Q1 1970 – Q3 2026</output></label>
+      <input id="scrub" type="range" min="0" max="678" step="1" value="678">
+    </div>
+  </div>
+
+  <section class="moments" aria-labelledby="momentsH">
+    <h2 id="momentsH">Key moments</h2>
+    <ol id="momentList"></ol>
+  </section>
+
+  <p class="foot">Source: Federal Reserve Bank of St. Louis (FRED), series IRLTLT01USM156N (OECD 10-year government bond yield, monthly average) and TLLODGCONS (U.S. Census Bureau total construction spending on lodging, seasonally adjusted annual rate) from January 2002. Lodging before 2002 is the Census Bureau's discontinued "Hotels, motels" series (private construction, old classification, seasonally adjusted annual rate), spliced without adjustment; in 2002, when both were published, the new series ran about 5% above the old one. The two lines use different scales, so the point where they cross has no meaning. Space bar plays and pauses. Story mode pauses at each key moment; select a moment below to jump to it. Hover the chart while paused to read any month. Moments describe what moved with rates and lending at the time, not rates alone.</p>
+
+  <details>
+    <summary>Data table (679 months)</summary>
+    <div class="tbl"><table><thead><tr><th>Month</th><th>10-yr yield (%)</th><th>Lodging ($B, SAAR)</th></tr></thead><tbody id="tbody"></tbody></table></div>
+  </details>
+</div>
+
+<script>
+const D = {"start":"1970-01-01","tp":[7.79,7.24,7.07,7.39,7.91,7.84,7.46,7.53,7.39,7.33,6.84,6.39,6.24,6.11,5.7,5.83,6.39,6.52,6.73,6.58,6.14,5.93,5.81,5.93,5.95,6.08,6.07,6.19,6.13,6.11,6.11,6.21,6.55,6.48,6.28,6.36,6.46,6.64,6.71,6.67,6.85,6.9,7.13,7.4,7.09,6.79,6.73,6.74,6.99,6.96,7.21,7.51,7.58,7.54,7.81,8.04,8.04,7.9,7.68,7.43,7.5,7.39,7.73,8.23,8.06,7.86,8.06,8.4,8.43,8.14,8.05,8.0,7.74,7.79,7.73,7.56,7.9,7.86,7.83,7.77,7.59,7.41,7.29,6.87,7.21,7.39,7.46,7.37,7.46,7.28,7.33,7.4,7.34,7.52,7.58,7.69,7.96,8.03,8.04,8.15,8.35,8.46,8.64,8.41,8.42,8.64,8.81,9.01,9.1,9.1,9.12,9.18,9.25,8.91,8.95,9.03,9.33,10.3,10.65,10.39,10.8,12.41,12.75,11.47,10.18,9.78,10.25,11.1,11.51,11.75,12.68,12.84,12.57,13.19,13.12,13.68,14.1,13.47,14.28,14.94,15.32,15.15,13.39,13.72,14.59,14.43,13.86,13.87,13.62,14.3,13.95,13.06,12.34,10.91,10.55,10.54,10.46,10.72,10.51,10.4,10.38,10.85,11.38,11.85,11.65,11.54,11.69,11.83,11.67,11.84,12.32,12.63,13.41,13.56,13.36,12.72,12.52,12.16,11.57,11.5,11.38,11.51,11.86,11.43,10.85,10.16,10.31,10.33,10.37,10.24,9.78,9.26,9.19,8.7,7.78,7.3,7.71,7.8,7.3,7.17,7.45,7.43,7.25,7.11,7.08,7.25,7.25,8.02,8.61,8.4,8.45,8.76,9.42,9.52,8.86,8.99,8.67,8.21,8.37,8.72,9.09,8.92,9.06,9.26,8.98,8.8,8.96,9.11,9.09,9.17,9.36,9.18,8.86,8.28,8.02,8.11,8.19,8.01,7.87,7.84,8.21,8.47,8.59,8.79,8.76,8.48,8.47,8.75,8.89,8.72,8.39,8.08,8.09,7.85,8.11,8.04,8.07,8.28,8.27,7.9,7.65,7.53,7.42,7.09,7.03,7.34,7.54,7.48,7.39,7.26,6.84,6.59,6.42,6.59,6.87,6.77,6.6,6.26,5.98,5.97,6.04,5.96,5.81,5.68,5.36,5.33,5.72,5.77,5.75,5.97,6.48,6.97,7.18,7.1,7.3,7.24,7.46,7.74,7.96,7.81,7.78,7.47,7.2,7.06,6.63,6.17,6.28,6.49,6.2,6.04,5.93,5.71,5.65,5.81,6.27,6.51,6.74,6.91,6.87,6.64,6.83,6.53,6.2,6.3,6.58,6.42,6.69,6.89,6.71,6.49,6.22,6.3,6.21,6.03,5.88,5.81,5.54,5.57,5.65,5.64,5.65,5.5,5.46,5.34,4.81,4.53,4.83,4.65,4.72,5.0,5.23,5.18,5.54,5.9,5.79,5.94,5.92,6.11,6.03,6.28,6.66,6.52,6.26,5.99,6.44,6.1,6.05,5.83,5.8,5.74,5.72,5.24,5.16,5.1,4.89,5.14,5.39,5.28,5.24,4.97,4.73,4.57,4.65,5.09,5.04,4.91,5.28,5.21,5.16,4.93,4.65,4.26,3.87,3.94,4.05,4.03,4.05,3.9,3.81,3.96,3.57,3.33,3.98,4.45,4.27,4.29,4.3,4.27,4.15,4.08,3.83,4.35,4.72,4.73,4.5,4.28,4.13,4.1,4.19,4.23,4.22,4.17,4.5,4.34,4.14,4.0,4.18,4.26,4.2,4.46,4.54,4.47,4.42,4.57,4.72,4.99,5.11,5.11,5.09,4.88,4.72,4.73,4.6,4.56,4.76,4.72,4.56,4.69,4.75,5.1,5.0,4.67,4.52,4.53,4.15,4.1,3.74,3.74,3.51,3.68,3.88,4.1,4.01,3.89,3.69,3.81,3.53,2.42,2.52,2.87,2.82,2.93,3.29,3.72,3.56,3.59,3.4,3.39,3.4,3.59,3.73,3.69,3.73,3.85,3.42,3.2,3.01,2.7,2.65,2.54,2.76,3.29,3.39,3.58,3.41,3.46,3.17,3.0,3.0,2.3,1.98,2.15,2.01,1.98,1.97,1.97,2.17,2.05,1.8,1.62,1.53,1.68,1.72,1.75,1.65,1.72,1.91,1.98,1.96,1.76,1.93,2.3,2.58,2.74,2.81,2.62,2.72,2.9,2.86,2.71,2.72,2.71,2.56,2.6,2.54,2.42,2.53,2.3,2.33,2.21,1.88,1.98,2.04,1.94,2.2,2.36,2.32,2.17,2.17,2.07,2.26,2.24,2.09,1.78,1.89,1.81,1.81,1.64,1.5,1.56,1.63,1.76,2.14,2.49,2.43,2.42,2.48,2.3,2.3,2.19,2.32,2.21,2.2,2.36,2.35,2.4,2.58,2.86,2.84,2.87,2.98,2.91,2.89,2.89,3.0,3.15,3.12,2.83,2.71,2.68,2.57,2.53,2.4,2.07,2.06,1.63,1.7,1.71,1.81,1.86,1.76,1.5,0.87,0.66,0.67,0.73,0.62,0.65,0.68,0.79,0.87,0.93,1.08,1.26,1.61,1.64,1.62,1.52,1.32,1.28,1.37,1.58,1.56,1.47,1.76,1.93,2.13,2.75,2.9,3.14,2.9,2.9,3.52,3.98,3.89,3.62,3.53,3.75,3.66,3.46,3.57,3.75,3.9,4.17,4.38,4.8,4.5,4.02,4.06,4.21,4.21,4.54,4.48,4.31,4.25,3.87,3.72,4.1,4.36,4.39,4.63,4.45,4.28,4.28,4.42,4.38,4.39,4.26,4.12,4.06,4.09,4.14,4.21,4.13,4.25,4.32,4.48,4.47,4.6],"u":[1482,1524,1560,1543,1520,1512,1470,1354,1429,1421,1373,1336,1344,1360,1325,1469,1421,1437,1448,1479,1514,1620,1736,1828,2012,1922,1889,1774,1989,2145,2277,2381,2383,2294,2314,2417,2350,2472,2635,2843,2686,2586,2571,2522,2458,2480,2461,2386,2289,2276,2155,2115,1950,1828,1735,1662,1621,1624,1527,1489,1532,1406,1338,1282,1340,1174,1156,999,1151,1260,1082,1016,972,879,1066,969,980,1008,1011,1012,1038,1068,1127,1152,1104,1165,1124,1122,1066,1206,1048,1037,1046,1063,985,1096,1244,1189,1215,1289,1349,1377,1357,1494,1386,1344,1415,1522,1684,1757,2027,2135,2263,2288,2534,2619,2801,3079,3198,3248,3115,3228,3360,3351,3315,3345,3258,3355,3598,3422,3756,3638,3835,3943,3941,4012,4296,3915,4606,4738,4855,4797,4657,4395,4407,4215,4463,4573,4698,4924,4879,5106,5049,5163,5157,5230,5829,5559,5474,5607,5620,5726,5725,5989,6410,6475,7649,7824,7427,7868,8039,7967,8012,8475,8155,8100,8037,8415,7822,7873,8206,8319,8327,8484,9121,8435,8518,8680,9096,9131,9465,9108,8506,8646,8161,8583,9015,8926,9183,9219,9076,9654,9103,8965,9080,9448,9008,8967,8866,8563,8793,9213,8730,8853,8825,8973,8942,8302,8265,8478,8253,9027,8186,7689,7171,7898,8413,8695,8878,8785,9296,8840,8755,8899,9409,9602,9760,9860,9955,9280,10322,10306,11466,11060,11424,11468,11080,10702,10473,9984,9968,9857,10115,10023,9456,8524,8057,5852,5984,5776,5968,4940,4723,4378,3746,3775,3694,3828,3169,3642,3718,3957,3531,3830,3517,3922,3564,3561,4562,3582,5335,5322,4702,4847,5514,4751,4982,3877,4148,4412,4787,5325,5058,4546,3822,4199,4478,4474,5163,5278,6129,6212,7400,5556,6177,6432,6858,6767,7285,7680,9107,9966,9654,9795,10044,10970,9705,10388,10042,11501,11759,11511,12363,12702,12269,12507,12493,12691,13473,13338,13300,13315,12618,13071,12979,12842,12894,12724,12800,13659,13322,15010,14956,15947,16672,16745,16423,16065,17126,17955,17128,16219,16130,15124,15886,14992,14766,15351,15596,15743,16833,16402,17105,16916,16762,16417,16527,15923,16065,15767,15442,15259,15196,15605,14539,14248,14391,15059,15455,14837,14632,13744,13504,12683,11862,11058,11036,12104,11838,10991,10496,10112,10398,10624,9920,9983,10112,10078,10877,10430,14653,10826,10565,10441,10399,10597,10085,9481,9268,10583,11911,11970,12270,12599,12827,13146,13679,13626,13758,12725,11908,12505,13675,12996,11926,11662,11986,12686,13453,13710,13651,13919,13561,14272,15619,17444,17269,18494,19132,19387,19628,20797,21212,20846,21403,22241,24845,26348,27877,28772,29754,30190,32166,34387,33846,32640,31615,32618,33876,36055,37244,37087,37459,38212,37836,37826,36508,33329,30390,30874,30782,31186,29344,27214,25181,23033,21972,20042,18636,17333,15582,14339,12516,12112,11384,11384,11239,11078,10626,10152,9882,10083,9240,9023,8904,8573,8773,9325,8735,9027,9298,9177,9632,9982,10019,9597,10756,10854,10687,10799,11077,10971,10818,11416,10841,11880,12231,12756,12771,12805,13060,13289,13450,13937,14069,14367,14834,14184,15223,16085,15265,15613,15189,15671,16833,16716,17582,18991,18605,18985,19089,19222,19440,20471,21933,23461,22644,24016,24016,23405,22951,23329,23664,24485,26598,26512,27342,27786,27386,27477,28747,27526,28889,28203,28957,28163,28815,27781,28627,28879,28400,29058,28932,28462,28526,29494,29922,30460,29997,31421,31475,31049,32011,32700,32152,32364,31870,32152,32103,32197,33132,33652,33212,34632,34090,33672,32860,33785,34269,33939,33262,33128,31271,29715,29199,28590,28226,27105,26774,26162,25118,23726,23288,22467,21911,20863,19071,18539,18324,17336,16857,16697,17046,17032,17415,17909,18702,19166,19586,19671,19852,20717,21720,22176,22637,23026,24256,24760,25051,25895,26452,27004,26527,27103,26056,26106,25696,25515,25054,25299,25268,25182,25328,25737,25814,26167,27327,27244,27626,28568,27826,27187,26304,27463,27231,26968,27286,27629,26111,26622,26089,25734,24646,24575,24488,24477,24352,24672,24668]};
+const N = D.tp.length;
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const y0 = +D.start.slice(0,4), m0 = +D.start.slice(5,7)-1;
+const label = i => { const t = m0+i; return MON[t%12]+" "+(y0+Math.floor(t/12)); };
+const yearOf = i => y0 + Math.floor((m0+i)/12);
+const qlabel = i => { const t = m0+i; return "Q"+(Math.floor((t%12)/3)+1)+" "+(y0+Math.floor(t/12)); };
+const SPEEDS = [1,2,3,6,12,24,36,60];
+// Axes grow with the data: each frame the view eases toward a target set by the
+// highest value drawn so far (plus headroom) and by how far the line has travelled.
+const pmax1 = [], pmax2 = [];
+D.tp.forEach((v,i)=>pmax1.push(Math.max(v, i?pmax1[i-1]:v)));
+D.u.forEach((v,i)=>pmax2.push(Math.max(v, i?pmax2[i-1]:v)));
+const view = {x:0, l:0, r:0, t:0};
+function niceStep(raw){
+  const e = Math.pow(10, Math.floor(Math.log10(raw))), f = raw/e;
+  return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e;
+}
+
+// Key moments (month index from Jan 1970). Figures come from the chart's own data.
+const M = s => (+s.slice(0,4)-y0)*12 + (+s.slice(5,7)-1) - m0;
+const MOMENTS = [
+  {a:M("1979-01"), b:M("1981-09"), when:"1979–81", title:"Rates hit 15%. Hotels kept building.",
+   body:"The 10-year yield peaked at 15.32% in September 1981, yet lodging spending nearly tripled, from $1.7B to $4.9B. Fast write-offs in the 1981 tax law and loose savings-and-loan lending outweighed the cost of money."},
+  {a:M("1990-06"), b:M("1992-05"), when:"1990–92", title:"The bust: lodging down 72%",
+   body:"Spending fell from $11.5B to $3.2B even as the yield eased from 8.5% to 7.4%. The 1986 tax reform ended the tax shelter and the savings-and-loan crisis cut off lending. Cheaper money doesn't help when lenders stop lending."},
+  {a:M("2004-01"), b:M("2008-08"), when:"2004–08", title:"Easy credit, record boom",
+   body:"With the yield between 3.5% and 5% and commercial real estate credit flowing freely, lodging spending quadrupled from $9.3B to an all-time high of $38.2B in August 2008."},
+  {a:M("2008-08"), b:M("2011-04"), when:"2008–11", title:"Credit freeze: down 77%",
+   body:"Spending collapsed from $38.2B to $8.6B by April 2011 while the yield fell to about 3.5%. When credit markets froze, low rates couldn't prevent the collapse."},
+  {a:M("2011-04"), b:M("2019-06"), when:"2011–19", title:"Cheap money, open credit",
+   body:"The longest run of low rates, with the yield between 1.5% and 3.2%. Lodging climbed steadily from $8.6B to $34.6B: the clearest case of low rates and open lending supporting investment."},
+  {a:M("2020-03"), b:M("2021-10"), when:"2020–21", title:"Not a rate story",
+   body:"The yield hit a record low of 0.62% in July 2020, but lodging still fell to $16.7B by October 2021. The pandemic stopped travel, lenders pulled back from hotels and few new projects started. No rate could offset that collapse in demand."},
+  {a:M("2022-01"), b:N-1, when:"2022–26", title:"Rate shock, delayed impact",
+   body:"The yield jumped from 1.8% to 4.8% by October 2023. Lodging kept rising to $28.6B in December 2024 as projects financed at low rates were completed, then slipped to $24.7B by July 2026 with the yield near 4.6%."}
+];
+const CLOSING = {title:"Rates set the price of money. Lenders decide who gets it.",
+  body:"Hotel building responds to both, and it responds late: projects take years to plan and build, so a change in rates shows up in spending one to two years later."};
+// Pause long enough to read each card: about 300 ms per word plus 2 s, never under 10 s
+const holdFor = k => { const m = k>=0 ? MOMENTS[k] : CLOSING; const w = (m.title+" "+m.body).split(/\s+/).length; return Math.max(10000, w*300 + 2000); };
+
+const $ = id => document.getElementById(id);
+const cv = $("c"), ctx = cv.getContext("2d"), box = $("chartBox"), tip = $("tip");
+let W=0,H=0,dpr=1;
+let progress = N-1, playing = false, speed = 12, last = 0, hoverI = null;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const fmtTP = v => (v<0?"−":"")+Math.abs(v).toFixed(2);
+const fmtU = v => "$"+(v/1000).toFixed(1);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function resize(){
+  const r = box.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  W = r.width; H = r.height;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  draw(); kick();
+}
+new ResizeObserver(resize).observe(box);
+
+function lerp(a,b,t){return a+(b-a)*t}
+function valAt(arr,p){const i=Math.floor(p), f=p-i; return i>=N-1?arr[N-1]:lerp(arr[i],arr[i+1],f);}
+
+let settled = true;
+function updateView(now){
+  const p = Math.max(0, progress), i = Math.floor(p);
+  const seen1 = Math.max(pmax1[i], valAt(D.tp,p)), seen2 = Math.max(pmax2[i], valAt(D.u,p));
+  const tL = Math.max(seen1*1.15, 1), tR = Math.max(seen2*1.15, 1000);
+  const tX = Math.max(p, 24) + Math.max(2, p*0.025);
+  const dt = view.t ? Math.max(0, Math.min(0.25,(now-view.t)/1000)) : 1/60;
+  view.t = now;
+  const k = (reduce || !view.x) ? 1 : 1 - Math.exp(-dt*4.5);
+  view.l = Math.max(lerp(view.l,tL,k), seen1*1.03);
+  view.r = Math.max(lerp(view.r,tR,k), seen2*1.03);
+  view.x = Math.max(lerp(view.x,tX,k), p+1);
+  settled = Math.abs(view.l-tL)/tL < 1e-3 && Math.abs(view.r-tR)/tR < 1e-3 && Math.abs(view.x-tX)/tX < 1e-3;
+}
+
+function draw(){
+  if(!W) return;
+  if(!view.x) updateView(performance.now());
+  const narrow = W < 560;
+  const pad = {l: narrow?40:52, r: narrow?52:64, t: 22, b: 30};
+  const pw = W-pad.l-pad.r, ph = H-pad.t-pad.b;
+  const X = i => pad.l + (i/view.x)*pw;
+  const YL = v => pad.t + (1-v/view.l)*ph;
+  const YR = v => pad.t + (1-v/view.r)*ph;
+  const fadeTop = y => Math.max(0, Math.min(1, (y-pad.t+2)/22));
+  const c = {ink:css("--ink"),ink2:css("--ink-2"),ink3:css("--ink-3"),grid:css("--grid"),axis:css("--axis"),zero:css("--zero"),s1:css("--s1"),s2:css("--s2"),bg:css("--bg")};
+
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.font = `${narrow?11:12}px Roboto, Arial, sans-serif`;
+  ctx.textBaseline = "middle";
+
+  // left axis: gridlines + labels, ticks fade in as the scale grows to meet them
+  const nT = narrow ? 4 : 5;
+  const sL = niceStep(view.l/nT), dL = sL%1 ? 1 : 0;
+  for(let v=sL; v<=view.l+1e-9; v+=sL){
+    const y = YL(v), a = fadeTop(y); if(a<=0) continue;
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = c.grid; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, Math.round(y)+.5); ctx.lineTo(pad.l+pw, Math.round(y)+.5); ctx.stroke();
+    ctx.fillStyle = c.ink2; ctx.textAlign = "right"; ctx.fillText(v.toFixed(dL), pad.l-8, y);
+  }
+  ctx.globalAlpha = 1; ctx.fillStyle = c.ink2; ctx.textAlign = "right"; ctx.fillText("0", pad.l-8, pad.t+ph);
+  // right axis: its own round steps, labels only (no second grid)
+  const sR = niceStep(view.r/nT), dR = (sR/1000)%1 ? 1 : 0;
+  for(let v=0; v<=view.r+1e-9; v+=sR){
+    const y = YR(v), a = v ? fadeTop(y) : 1; if(a<=0) continue;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = c.ink2; ctx.textAlign = "left"; ctx.fillText("$"+(v/1000).toFixed(v?dR:0)+"B", pad.l+pw+8, y);
+  }
+  ctx.globalAlpha = 1;
+  // axis titles with swatches
+  ctx.font = `500 ${narrow?10:11}px Roboto, Arial, sans-serif`; ctx.textBaseline="alphabetic";
+  ctx.fillStyle=c.s1; ctx.fillRect(pad.l-(narrow?36:46), 6, 12, 3);
+  ctx.fillStyle=c.ink2; ctx.textAlign="left"; ctx.fillText("10-YR YIELD, %", pad.l-(narrow?36:46)+16, 11);
+  const rt = narrow ? "LODGING, $B" : "LODGING CONSTR., $B";
+  ctx.textAlign="right"; ctx.fillText(rt, W-2, 11);
+  const rtw = ctx.measureText(rt).width;
+  ctx.fillStyle=c.s2; ctx.fillRect(W-2-rtw-16, 6, 12, 3);
+
+  // x axis
+  ctx.strokeStyle=c.axis; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad.l, pad.t+ph+.5); ctx.lineTo(pad.l+pw, pad.t+ph+.5); ctx.stroke();
+  ctx.font = `${narrow?11:12}px Roboto, Arial, sans-serif`; ctx.textBaseline="top"; ctx.textAlign="center"; ctx.fillStyle=c.ink2;
+  // x axis: year step widens as the time span grows; new years fade in at the right edge
+  const spanY = view.x/12, maxLab = narrow ? 5 : 9;
+  const every = [1,2,5,10,20].find(s => spanY/s <= maxLab) || 20;
+  for(let i=0;i<=Math.min(N-1, view.x);i++){
+    if((m0+i)%12===0 && yearOf(i)%every===0){
+      const x = X(i), a = Math.max(0, Math.min(1, (pad.l+pw+6-x)/28));
+      if(a<=0) continue;
+      ctx.globalAlpha = a;
+      ctx.strokeStyle=c.axis; ctx.beginPath(); ctx.moveTo(x+.5,pad.t+ph); ctx.lineTo(x+.5,pad.t+ph+4); ctx.stroke();
+      ctx.fillText(yearOf(i), x, pad.t+ph+8);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // playhead
+  const p = progress, hx = X(p);
+  if(p < N-1 && playing){
+    ctx.strokeStyle=c.grid; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(hx+.5,pad.t); ctx.lineTo(hx+.5,pad.t+ph); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // series break: Census reclassified construction types in January 2002
+  const BREAK = (2002 - y0)*12 - m0;
+  if(BREAK > 0 && BREAK < N && p >= BREAK){
+    const bx = Math.round(X(BREAK))+.5;
+    ctx.strokeStyle=c.ink3; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+    ctx.beginPath(); ctx.moveTo(bx,pad.t+14); ctx.lineTo(bx,pad.t+ph); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = `${narrow?10:11}px Roboto, Arial, sans-serif`; ctx.fillStyle=c.ink3; ctx.textAlign="left"; ctx.textBaseline="middle";
+    ctx.fillText(narrow?"Series change":"Lodging series change, 2002", bx+5, pad.t+14);
+  }
+
+  // key-moment bands: shade each period as the line draws through it, with a numbered badge
+  if(storyOn){
+    MOMENTS.forEach((m,k)=>{
+      if(p < m.a) return;
+      const x1 = X(m.a), x2 = X(Math.min(m.b, p));
+      const active = story.k===k && story.show;
+      ctx.fillStyle = c.ink; ctx.globalAlpha = active ? .09 : .045;
+      ctx.fillRect(x1+1, pad.t, Math.max(1,x2-x1-2), ph); // 2px gap keeps back-to-back periods distinct
+      ctx.globalAlpha = 1;
+      const bx = Math.max(x1+9, Math.min(x2-9, (x1+x2)/2));
+      if(x2-x1 < 4 && !active) return;
+      ctx.fillStyle = active ? c.ink : c.ink3; ctx.beginPath(); ctx.arc(bx, pad.t+ph-12, 8, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = c.bg; ctx.font = `700 10px Roboto, Arial, sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(String(k+1), bx, pad.t+ph-11.5);
+    });
+  }
+
+  // series
+  const series = [
+    {arr:D.tp, Y:YL, col:c.s1, fmt:v=>fmtTP(v)+"%"},
+    {arr:D.u,  Y:YR, col:c.s2, fmt:v=>fmtU(v)+"B"}
+  ];
+  ctx.lineJoin="round"; ctx.lineCap="round";
+  for(const s of series){
+    ctx.strokeStyle=s.col; ctx.lineWidth=2;
+    ctx.beginPath();
+    const last = Math.floor(p);
+    for(let i=0;i<=last;i++){ const x=X(i), y=s.Y(s.arr[i]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    if(p>last) ctx.lineTo(hx, s.Y(valAt(s.arr,p)));
+    ctx.stroke();
+  }
+  // head dots + direct labels (values of the month shown in the readout)
+  const mi = Math.min(N-1, Math.floor(p+1e-6));
+  const heads = series.map(s=>({s, y:s.Y(valAt(s.arr,p)), v:s.arr[mi]}));
+  const ly = heads.map(h=>h.y);
+  if(Math.abs(ly[0]-ly[1])<18){ const mid=(ly[0]+ly[1])/2, sgn=ly[0]<=ly[1]?-1:1; ly[0]=mid+sgn*9; ly[1]=mid-sgn*9; }
+  ctx.font = `700 13px "Roboto Condensed", Arial, sans-serif`; ctx.textBaseline="middle"; ctx.textAlign="left";
+  heads.forEach((h,k)=>{
+    ctx.fillStyle=c.bg; ctx.beginPath(); ctx.arc(hx,h.y,6,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=h.s.col; ctx.beginPath(); ctx.arc(hx,h.y,4.5,0,Math.PI*2); ctx.fill();
+    if(narrow) return; // the readout above carries the values on small screens
+    const txt = h.s.fmt(h.v), tw = ctx.measureText(txt).width;
+    let x = hx+10;
+    if(x+tw > pad.l+pw-2) x = hx-10-tw;
+    ctx.fillStyle=c.bg; ctx.globalAlpha=.88; ctx.fillRect(x-3, ly[k]-9, tw+6, 18); ctx.globalAlpha=1;
+    ctx.fillStyle=c.ink; ctx.fillText(txt, x, ly[k]);
+  });
+
+  // hover crosshair
+  if(hoverI!=null && hoverI<=p){
+    const x=X(hoverI);
+    ctx.strokeStyle=c.ink3; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x+.5,pad.t); ctx.lineTo(x+.5,pad.t+ph); ctx.stroke();
+    series.forEach(s=>{ const y=s.Y(s.arr[hoverI]);
+      ctx.fillStyle=c.bg; ctx.beginPath(); ctx.arc(x,y,5.5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=s.col; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill(); });
+    tip.innerHTML = `<b>${label(hoverI)}</b><i style="background:${c.s1}"></i>10-yr yield ${fmtTP(D.tp[hoverI])}%<br><i style="background:${c.s2}"></i>Lodging ${fmtU(D.u[hoverI])}B`;
+    tip.hidden=false;
+    const top = Math.min(s1y(), s2y());
+    function s1y(){return YL(D.tp[hoverI])} function s2y(){return YR(D.u[hoverI])}
+    tip.style.left = Math.max(90, Math.min(W-90, x))+"px";
+    tip.style.top = Math.max(70, top)+"px";
+  } else tip.hidden=true;
+
+  cv._geom = {pad,pw,vx:view.x,X};
+  updateReadout();
+}
+
+function updateReadout(){
+  const i = Math.min(N-1, Math.floor(progress+1e-6));
+  $("date").textContent = qlabel(i);
+  $("v1").innerHTML = fmtTP(D.tp[i])+"<small>%</small>";
+  $("v2").innerHTML = fmtU(D.u[i])+"<small>B</small>";
+  const sc=$("scrub"); if(+sc.value!==i) sc.value=i;
+  $("scrubOut").textContent = qlabel(i);
+}
+
+// story mode: pause at each moment's end, show its card, then continue
+let storyOn = true;
+const story = {k:-1, show:false, holdUntil:0, holdStart:0, closing:false};
+const card = $("story");
+function showCard(k, hold){
+  const m = k>=0 ? MOMENTS[k] : null;
+  story.k = k; story.show = true; story.closing = k<0;
+  $("storyNum").textContent = m ? k+1 : "✓";
+  $("storyWhen").textContent = m ? m.when : "The takeaway";
+  $("storyTitle").textContent = m ? m.title : CLOSING.title;
+  $("storyBody").textContent = m ? m.body : CLOSING.body;
+  $("storyCta").hidden = !!m;
+  // put the card on the side away from the period it describes
+  const g = cv._geom;
+  const mid = m && g ? (g.X(m.a)+g.X(Math.min(m.b,progress)))/2 : 0;
+  card.classList.toggle("right", !!(m && g && mid < g.pad.l + g.pw*0.5));
+  $("storyNext").textContent = hold ? "Continue ▸" : "Close";
+  $("storyBar").style.width = hold ? "0%" : "100%";
+  card.classList.remove("off");
+  document.querySelectorAll("#momentList button").forEach((b,i)=>b.setAttribute("aria-current", i===k ? "true" : "false"));
+}
+function hideCard(){
+  story.show = false; story.holdUntil = 0; card.classList.add("off");
+  document.querySelectorAll("#momentList button").forEach(b=>b.setAttribute("aria-current","false"));
+}
+$("storyNext").onclick = () => { if(story.holdUntil){ story.holdUntil = 0; hideCard(); kick(); } else hideCard(); draw(); };
+$("storyOn").onchange = e => { storyOn = e.target.checked; if(!storyOn) hideCard(); kick(); draw(); };
+
+// one render loop: advances the playhead while playing, and keeps easing the axes
+// until they settle; it goes idle when nothing is moving
+let looping = false;
+function kick(){ if(!looping){ looping = true; last = performance.now(); requestAnimationFrame(frame); } }
+function frame(now){
+  const dt = Math.max(0, Math.min(0.1,(now-last)/1000)); last = now;
+  if(playing){
+    if(story.holdUntil){
+      const f = Math.min(1,(now-story.holdStart)/(story.holdUntil-story.holdStart));
+      $("storyBar").style.width = (f*100)+"%";
+      if(now >= story.holdUntil){ story.holdUntil = 0; hideCard(); }
+    } else {
+      const prev = progress;
+      progress = Math.min(N-1, progress + dt*speed);
+      if(storyOn){
+        const k = MOMENTS.findIndex(m => m.b < N-1 && prev < m.b && progress >= m.b);
+        if(k>=0){ progress = MOMENTS[k].b; story.holdStart = now; story.holdUntil = now + holdFor(k); showCard(k, true); }
+      }
+      if(progress>=N-1){
+        setPlaying(false);
+        if(storyOn){ showCard(MOMENTS.length-1, false); setTimeout(()=>{ if(!playing && progress>=N-1 && storyOn) showCard(-1,false); }, holdFor(MOMENTS.length-1)); }
+      }
+    }
+  }
+  updateView(now);
+  draw();
+  if(playing || !settled || story.holdUntil) requestAnimationFrame(frame);
+  else { looping = false; view.t = 0; }
+}
+function setPlaying(on){
+  playing = on;
+  $("playIcon").textContent = on ? "❚❚" : "▶";
+  $("playTxt").textContent = on ? "Pause" : (progress>=N-1 ? "Replay" : "Play");
+  $("play").setAttribute("aria-label", on ? "Pause animation" : "Play animation");
+  if(on){ hoverI=null; if(!story.holdUntil) hideCard(); }
+  else if(story.holdUntil){ story.holdUntil = 0; $("storyNext").textContent = "Close"; }
+  kick();
+}
+
+$("play").onclick = () => {
+  if(playing) return setPlaying(false);
+  if(progress>=N-1) progress=0;
+  setPlaying(true);
+};
+$("restart").onclick = () => { progress=0; story.holdUntil=0; setPlaying(true); };
+function setSpeed(idx){
+  speed = SPEEDS[idx];
+  const secs = Math.round((N-1)/speed);
+  $("speedOut").textContent = `${speed} month${speed>1?"s":""}/sec · full run ${secs>=60?Math.floor(secs/60)+"m "+(secs%60)+"s":secs+"s"}`;
+}
+$("speed").oninput = e => setSpeed(+e.target.value);
+$("scrub").oninput = e => { progress = +e.target.value; story.holdUntil = 0; hideCard(); if(!playing){ $("playTxt").textContent = progress>=N-1?"Replay":"Play"; } kick(); };
+
+cv.addEventListener("pointermove", e => {
+  if(playing){ hoverI=null; return; }
+  const r=cv.getBoundingClientRect(), g=cv._geom; if(!g) return;
+  const x=e.clientX-r.left;
+  if(x<g.pad.l-8 || x>g.pad.l+g.pw+8){ hoverI=null; draw(); return; }
+  hoverI = Math.max(0, Math.min(Math.floor(progress+1e-6), Math.round((x-g.pad.l)/g.pw*g.vx)));
+  draw();
+});
+cv.addEventListener("pointerleave", () => { hoverI=null; draw(); });
+
+document.addEventListener("keydown", e => {
+  if(e.code==="Space" && !["INPUT","BUTTON","SUMMARY"].includes(document.activeElement.tagName)){ e.preventDefault(); $("play").click(); }
+});
+
+// theme changes
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+if(document.fonts) document.fonts.ready.then(draw);
+
+// table
+$("tbody").innerHTML = D.tp.map((v,i)=>`<tr><td>${label(i)}</td><td>${fmtTP(v)}</td><td>${fmtU(D.u[i])}</td></tr>`).join("");
+
+$("momentList").innerHTML = MOMENTS.map((m,k)=>`<li><button type="button" data-k="${k}" aria-current="false"><span class="n">${k+1}</span><span class="t">${m.title}<small>${m.when}</small></span></button></li>`).join("");
+$("momentList").addEventListener("click", e => {
+  const b = e.target.closest("button[data-k]"); if(!b) return;
+  const k = +b.dataset.k;
+  setPlaying(false); story.holdUntil = 0; progress = MOMENTS[k].b;
+  if(!storyOn){ storyOn = true; $("storyOn").checked = true; }
+  $("playTxt").textContent = progress>=N-1 ? "Replay" : "Play";
+  kick(); draw(); showCard(k, false);
+});
+
+setSpeed(4);
+setPlaying(false);
+// autoplay once from Jan 1970 unless the viewer prefers reduced motion
+if(!reduce){ setTimeout(()=>{ progress=0; setPlaying(true); }, 700); }
+</script>
+
+</body>
+</html>
